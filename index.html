@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>INTELLECTUAL PROTOCOL — RudVentur</title>
+<link href="https://fonts.googleapis.com/css2?family=VT323&family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --black:   #050508;
+    --deep:    #0a0a12;
+    --panel:   #0f0f1a;
+    --border:  #1e1e3a;
+    --purple:  #7b2fff;
+    --glow:    #a855f7;
+    --cyan:    #00fff7;
+    --gold:    #ffd700;
+    --text:    #c8c8e8;
+    --dim:     #6666aa;
+    --white:   #f0f0ff;
+  }
+
+  html, body {
+    background: var(--black);
+    color: var(--text);
+    font-family: 'VT323', monospace;
+    font-size: 18px;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* SCANLINE overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.08) 2px,
+      rgba(0,0,0,0.08) 4px
+    );
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  /* HEADER */
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 18px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--deep);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 11px;
+    color: var(--glow);
+    text-shadow: 0 0 12px var(--purple);
+    letter-spacing: 1px;
+    line-height: 1.6;
+  }
+
+  .logo span {
+    display: block;
+    font-family: 'VT323', monospace;
+    font-size: 14px;
+    color: var(--dim);
+    text-shadow: none;
+    letter-spacing: 2px;
+  }
+
+  .status {
+    font-size: 14px;
+    color: var(--cyan);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--cyan);
+    box-shadow: 0 0 8px var(--cyan);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  /* HERO */
+  .hero {
+    text-align: center;
+    padding: 60px 24px 40px;
+    border-bottom: 1px solid var(--border);
+    background: radial-gradient(ellipse at 50% 0%, rgba(123,47,255,0.12) 0%, transparent 70%);
+  }
+
+  .hero-title {
+    font-family: 'Press Start 2P', monospace;
+    font-size: clamp(14px, 3vw, 22px);
+    color: var(--white);
+    text-shadow: 0 0 30px var(--purple), 0 0 60px rgba(123,47,255,0.4);
+    line-height: 1.8;
+    margin-bottom: 20px;
+  }
+
+  .hero-title em {
+    color: var(--glow);
+    font-style: normal;
+  }
+
+  .hero-sub {
+    font-size: 22px;
+    color: var(--dim);
+    letter-spacing: 3px;
+    margin-bottom: 30px;
+  }
+
+  .quote {
+    display: inline-block;
+    border-left: 3px solid var(--purple);
+    padding: 12px 20px;
+    font-size: 20px;
+    color: var(--text);
+    font-style: italic;
+    text-align: left;
+    max-width: 700px;
+    background: rgba(123,47,255,0.06);
+    margin-bottom: 8px;
+  }
+
+  .quote-author {
+    font-size: 15px;
+    color: var(--dim);
+    letter-spacing: 2px;
+  }
+
+  /* FOUR PILLARS */
+  .section {
+    padding: 40px 24px;
+    border-bottom: 1px solid var(--border);
+    max-width: 960px;
+    margin: 0 auto;
+  }
+
+  .section-label {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 9px;
+    color: var(--purple);
+    letter-spacing: 3px;
+    margin-bottom: 24px;
+    text-transform: uppercase;
+  }
+
+  .problem-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+
+  .problem-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-left: 3px solid #ff3366;
+    padding: 16px;
+    font-size: 17px;
+    line-height: 1.5;
+    color: var(--text);
+    transition: border-color 0.2s;
+  }
+
+  .problem-card:hover {
+    border-left-color: var(--glow);
+    background: rgba(123,47,255,0.08);
+  }
+
+  .problem-card .x {
+    color: #ff3366;
+    font-size: 20px;
+    display: block;
+    margin-bottom: 6px;
+  }
+
+  /* IDEA CAPTURE */
+  .capture-box {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-top: 2px solid var(--purple);
+    padding: 28px;
+    max-width: 960px;
+    margin: 0 auto;
+  }
+
+  .capture-title {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 9px;
+    color: var(--glow);
+    letter-spacing: 2px;
+    margin-bottom: 20px;
+  }
+
+  .field-label {
+    font-size: 14px;
+    color: var(--dim);
+    letter-spacing: 2px;
+    display: block;
+    margin-bottom: 6px;
+    margin-top: 16px;
+  }
+
+  input[type="text"], textarea, select {
+    width: 100%;
+    background: var(--deep);
+    border: 1px solid var(--border);
+    color: var(--white);
+    font-family: 'VT323', monospace;
+    font-size: 20px;
+    padding: 10px 14px;
+    outline: none;
+    transition: border-color 0.2s;
+    resize: vertical;
+  }
+
+  input[type="text"]:focus,
+  textarea:focus,
+  select:focus {
+    border-color: var(--purple);
+    box-shadow: 0 0 12px rgba(123,47,255,0.3);
+  }
+
+  textarea { min-height: 120px; }
+
+  select option { background: var(--deep); }
+
+  .privacy-row {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+  }
+
+  .privacy-btn {
+    background: var(--deep);
+    border: 1px solid var(--border);
+    color: var(--dim);
+    font-family: 'VT323', monospace;
+    font-size: 18px;
+    padding: 8px 18px;
+    cursor: pointer;
+    letter-spacing: 1px;
+    transition: all 0.15s;
+  }
+
+  .privacy-btn.active,
+  .privacy-btn:hover {
+    border-color: var(--purple);
+    color: var(--glow);
+    background: rgba(123,47,255,0.12);
+  }
+
+  .submit-btn {
+    margin-top: 24px;
+    width: 100%;
+    background: var(--purple);
+    border: none;
+    color: var(--white);
+    font-family: 'Press Start 2P', monospace;
+    font-size: 11px;
+    padding: 16px;
+    cursor: pointer;
+    letter-spacing: 2px;
+    text-shadow: 0 0 8px rgba(255,255,255,0.4);
+    box-shadow: 0 0 20px rgba(123,47,255,0.5);
+    transition: all 0.2s;
+  }
+
+  .submit-btn:hover {
+    background: var(--glow);
+    box-shadow: 0 0 32px rgba(168,85,247,0.8);
+  }
+
+  /* TIMESTAMP PREVIEW */
+  .stamp-preview {
+    margin-top: 20px;
+    background: var(--deep);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--cyan);
+    padding: 14px 18px;
+    font-size: 16px;
+    color: var(--dim);
+    line-height: 1.8;
+  }
+
+  .stamp-preview .highlight { color: var(--cyan); }
+
+  /* PILLARS */
+  .pillars {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    padding: 40px 24px;
+    max-width: 960px;
+    margin: 0 auto;
+  }
+
+  .pillar {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    padding: 22px;
+    transition: all 0.2s;
+  }
+
+  .pillar:hover {
+    border-color: var(--purple);
+    box-shadow: 0 0 20px rgba(123,47,255,0.2);
+  }
+
+  .pillar-num {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    color: var(--purple);
+    margin-bottom: 10px;
+    letter-spacing: 2px;
+  }
+
+  .pillar-title {
+    font-size: 22px;
+    color: var(--white);
+    margin-bottom: 10px;
+    letter-spacing: 1px;
+  }
+
+  .pillar-desc {
+    font-size: 17px;
+    color: var(--dim);
+    line-height: 1.5;
+  }
+
+  /* PATENT SEARCH */
+  .patent-section {
+    padding: 40px 24px;
+    border-top: 1px solid var(--border);
+    max-width: 960px;
+    margin: 0 auto;
+  }
+
+  .patent-links {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+  }
+
+  .patent-link {
+    background: var(--deep);
+    border: 1px solid var(--border);
+    color: var(--cyan);
+    font-family: 'VT323', monospace;
+    font-size: 18px;
+    padding: 10px 18px;
+    text-decoration: none;
+    letter-spacing: 1px;
+    transition: all 0.15s;
+  }
+
+  .patent-link:hover {
+    border-color: var(--cyan);
+    box-shadow: 0 0 12px rgba(0,255,247,0.3);
+  }
+
+  /* FOOTER */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 24px;
+    text-align: center;
+    font-size: 15px;
+    color: var(--dim);
+    background: var(--deep);
+    letter-spacing: 2px;
+  }
+
+  footer a { color: var(--glow); text-decoration: none; }
+
+  /* TOAST */
+  #toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--purple);
+    color: var(--white);
+    font-family: 'VT323', monospace;
+    font-size: 20px;
+    padding: 12px 28px;
+    letter-spacing: 2px;
+    box-shadow: 0 0 24px rgba(123,47,255,0.7);
+    transition: transform 0.3s;
+    z-index: 9998;
+    pointer-events: none;
+  }
+
+  #toast.show { transform: translateX(-50%) translateY(0); }
+
+  @media (max-width: 600px) {
+    .hero-title { font-size: 12px; }
+    .capture-box { padding: 18px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    INTELLECTUAL PROTOCOL
+    <span>BY RUDVENTUR · v0.1</span>
+  </div>
+  <div class="status">
+    <div class="dot"></div>
+    LIVE
+  </div>
+</header>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-title">
+    <em>GITHUB</em> FOR HUMAN IDEAS<br>BUILT FOR EVERYONE
+  </div>
+  <div class="hero-sub">— SOCIAL MEDIA FOR IDEAS —</div>
+  <div class="quote">
+    "You can do EVERYTHING YOU WANT — please consider consequences as they always coming after every action we take"
+  </div>
+  <div class="quote-author">— RudVentur</div>
+</div>
+
+<!-- THE PROBLEM -->
+<div style="padding: 40px 24px; border-bottom: 1px solid var(--border); background: var(--deep);">
+  <div style="max-width: 960px; margin: 0 auto;">
+    <div class="section-label">// THE PROBLEM WITH EVERYTHING THAT EXISTS</div>
+    <div class="problem-grid">
+      <div class="problem-card"><span class="x">✗</span>owns your content<br><span style="color:var(--dim);font-size:15px">Facebook, Instagram, X</span></div>
+      <div class="problem-card"><span class="x">✗</span>too technical<br><span style="color:var(--dim);font-size:15px">GitHub, patent offices</span></div>
+      <div class="problem-card"><span class="x">✗</span>no timestamp or protection<br><span style="color:var(--dim);font-size:15px">notes apps, voice memos</span></div>
+      <div class="problem-card"><span class="x">✗</span>doesn't connect to law<br><span style="color:var(--dim);font-size:15px">nowhere explains your rights</span></div>
+    </div>
+    <div style="font-size:20px; color:var(--text); line-height:1.6;">
+      Every day, millions of people have ideas — big ones, scary ones, original ones.<br>
+      They disappear. Not because the ideas aren't good.<br>
+      <span style="color:var(--glow);">Because there was nowhere safe enough to put them.</span>
+    </div>
+  </div>
+</div>
+
+<!-- FOUR PILLARS -->
+<div class="pillars">
+  <div class="pillar">
+    <div class="pillar-num">01 // CREATE</div>
+    <div class="pillar-title">YOURS. ALWAYS.</div>
+    <div class="pillar-desc">Write it, capture it, drop it at 3am. Private by default. Timestamped the moment it's born.</div>
+  </div>
+  <div class="pillar">
+    <div class="pillar-num">02 // SHARE</div>
+    <div class="pillar-title">YOUR LEDGER.</div>
+    <div class="pillar-desc">Your profile is your creation history. Share privately, publicly, or open for co-op. Fork with full credit.</div>
+  </div>
+  <div class="pillar">
+    <div class="pillar-num">03 // PROTECT</div>
+    <div class="pillar-title">KNOW YOUR RIGHTS.</div>
+    <div class="pillar-desc">Plain language IP education. Patent search built in. Your timestamp is your verifiable record of origin.</div>
+  </div>
+  <div class="pillar">
+    <div class="pillar-num">04 // CREDIT</div>
+    <div class="pillar-title">HONEST CO-CREATION.</div>
+    <div class="pillar-desc">Ideas built with AI get honest credits. You are always the legal owner. The collaboration is visible.</div>
+  </div>
+</div>
+
+<!-- IDEA CAPTURE FORM -->
+<div style="padding: 0 24px 40px; max-width: 960px; margin: 0 auto;">
+  <div class="capture-box">
+    <div class="capture-title">💡 DROP AN IDEA</div>
+
+    <label class="field-label">// IDEA TITLE</label>
+    <input type="text" id="idea-title" placeholder="Name your idea...">
+
+    <label class="field-label">// DESCRIBE IT</label>
+    <textarea id="idea-desc" placeholder="What is it? What does it do? Why does it matter?"></textarea>
+
+    <label class="field-label">// CATEGORY</label>
+    <select id="idea-cat">
+      <option value="">— select —</option>
+      <option>Technology</option>
+      <option>Art & Design</option>
+      <option>Science</option>
+      <option>Social Impact</option>
+      <option>Business</option>
+      <option>Education</option>
+      <option>Environment</option>
+      <option>Other</option>
+    </select>
+
+    <label class="field-label">// VISIBILITY</label>
+    <div class="privacy-row">
+      <button class="privacy-btn active" onclick="setPrivacy(this,'private')">🔒 PRIVATE</button>
+      <button class="privacy-btn" onclick="setPrivacy(this,'friends')">👥 FRIENDS</button>
+      <button class="privacy-btn" onclick="setPrivacy(this,'public')">🌍 PUBLIC</button>
+      <button class="privacy-btn" onclick="setPrivacy(this,'coop')">🤝 CO-OP</button>
+    </div>
+
+    <div class="stamp-preview" id="stamp-preview">
+      💡 <span class="highlight">[your idea title]</span><br>
+      By: <span class="highlight">You + Claude (Anthropic)</span><br>
+      Created: <span class="highlight" id="stamp-time"></span><br>
+      Status: <span class="highlight" id="stamp-status">PRIVATE</span>
+    </div>
+
+    <button class="submit-btn" onclick="captureIdea()">⚡ CAPTURE & TIMESTAMP IDEA ⚡</button>
+  </div>
+</div>
+
+<!-- PATENT SEARCH -->
+<div class="patent-section">
+  <div class="section-label">// PATENT SEARCH — IS YOUR IDEA ALREADY OUT THERE?</div>
+  <div style="font-size:19px; color:var(--text); margin-bottom:16px; line-height:1.6;">
+    A timestamp is not a patent — but it IS your verifiable record of origin.<br>
+    <span style="color:var(--dim);">Search these databases to see if similar concepts exist:</span>
+  </div>
+  <div class="patent-links">
+    <a class="patent-link" href="https://patents.google.com" target="_blank">🔍 GOOGLE PATENTS</a>
+    <a class="patent-link" href="https://www.uspto.gov/patents/search" target="_blank">🇺🇸 USPTO</a>
+    <a class="patent-link" href="https://www.epo.org/en/searching-for-patents" target="_blank">🇪🇺 EPO</a>
+    <a class="patent-link" href="https://www.wipo.int/patentscope" target="_blank">🌍 WIPO</a>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div style="margin-bottom:10px;">
+    PART OF THE <a href="https://rudventur.com">RUDVENTUR UNIVERSE</a> ·
+    <a href="https://rudventur.github.io/map-merger-venti/">MAPS.RV</a> ·
+    <a href="https://rudventur.github.io/map-merger-venti/snout-first/">SNOUT FIRST</a>
+  </div>
+  Built with midnight energy by RudVentur + PumpKIN-G (Claude) © 2026
+</footer>
+
+<div id="toast"></div>
+
+<script>
+  // Timestamp
+  function updateStamp() {
+    const now = new Date();
+    document.getElementById('stamp-time').textContent =
+      now.toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' }) +
+      ' — ' + now.toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' }) + ' GMT';
+
+    const title = document.getElementById('idea-title').value.trim();
+    document.querySelector('#stamp-preview .highlight').textContent = title || '[your idea title]';
+  }
+
+  document.getElementById('idea-title').addEventListener('input', updateStamp);
+  updateStamp();
+  setInterval(updateStamp, 30000);
+
+  // Privacy toggle
+  let currentPrivacy = 'private';
+  function setPrivacy(btn, val) {
+    document.querySelectorAll('.privacy-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentPrivacy = val;
+    document.getElementById('stamp-status').textContent = val.toUpperCase();
+  }
+
+  // Capture
+  function captureIdea() {
+    const title = document.getElementById('idea-title').value.trim();
+    const desc = document.getElementById('idea-desc').value.trim();
+    if (!title) { showToast('⚠️ NAME YOUR IDEA FIRST'); return; }
+    if (!desc)  { showToast('⚠️ DESCRIBE IT — EVEN ONE LINE'); return; }
+
+    const now = new Date();
+    const stamp = {
+      title,
+      desc,
+      category: document.getElementById('idea-cat').value,
+      privacy: currentPrivacy,
+      created: now.toISOString(),
+      credit: 'RudVentur + Claude (Anthropic)'
+    };
+
+    // Save to localStorage for now (Firebase coming)
+    const ideas = JSON.parse(localStorage.getItem('ip_ideas') || '[]');
+    ideas.unshift(stamp);
+    localStorage.setItem('ip_ideas', JSON.stringify(ideas));
+
+    showToast('💡 IDEA CAPTURED & TIMESTAMPED');
+    document.getElementById('idea-title').value = '';
+    document.getElementById('idea-desc').value = '';
+    updateStamp();
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2800);
+  }
+</script>
+</body>
+</html>
