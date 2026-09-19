@@ -109,6 +109,21 @@ Part of MAPS.RV — ideas as geotagged locations on the map
 
 ---
 
+## Firebase Setup
+
+The idea ledger now runs on Firebase (Auth + Firestore) instead of `localStorage` — ideas are stored per-user and sync in real time. To run your own instance:
+
+1. Create a project at the [Firebase Console](https://console.firebase.google.com)
+2. **Authentication → Sign-in method** — enable **Google** and **Anonymous**
+3. **Firestore Database → Create database** (production mode is fine)
+4. **Firestore → Rules** — paste in the contents of `firestore.rules` from this repo
+5. **Project settings → General → Your apps** — add a **Web app** and copy its config object
+6. Paste that config into the `firebaseConfig` object near the top of the `<script type="module">` block in `index.html`
+
+Ideas are keyed by `ownerUid` and become readable by anyone once marked `PUBLIC` (per `firestore.rules`) — a public discovery feed to actually browse those is still on the roadmap.
+
+---
+
 ## Status
 
 `v0.1 — Planning & Spec`

@@ -96,6 +96,10 @@
   }
   .fs-btn:hover { border-color: var(--purple); color: var(--glow); }
 
+  .auth-area { display: flex; align-items: center; gap: 8px; }
+  .user-badge { display: flex; align-items: center; gap: 8px; font-size: 15px; color: var(--text); letter-spacing: 1px; }
+  .user-badge .name { color: var(--glow); }
+
   .dot-status {
     display: flex;
     align-items: center;
@@ -470,6 +474,10 @@
     <span>INTELLECTUAL PROTOCOL</span>
   </div>
   <div class="header-right">
+    <div class="auth-area" id="auth-area">
+      <button class="fs-btn" onclick="handleSignIn()">🔑 SIGN IN</button>
+      <button class="fs-btn" onclick="handleGuest()">👤 GUEST</button>
+    </div>
     <button class="fs-btn" onclick="togglePanoramic()" id="fs-btn" title="Toggle panoramic fullscreen">⛶ PANORAMIC</button>
     <div class="dot-status"><div class="dot"></div>LIVE</div>
   </div>
@@ -607,7 +615,40 @@
 
 <div id="toast"></div>
 
-<script>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+  import {
+    getAuth, GoogleAuthProvider, signInWithPopup, signInAnonymously,
+    onAuthStateChanged, signOut
+  } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+  import {
+    getFirestore, collection, addDoc, query, where,
+    onSnapshot, serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+
+  // ── FIREBASE CONFIG ──
+  // Create a project at https://console.firebase.google.com, enable
+  // Authentication (Google + Anonymous providers) and Firestore, then
+  // paste your project's config here. See README.MD → "Firebase Setup".
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT.firebaseapp.com",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_PROJECT.appspot.com",
+    messagingSenderId: "YOUR_SENDER_ID",
+    appId: "YOUR_APP_ID"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+  const googleProvider = new GoogleAuthProvider();
+  const ideasCol = collection(db, 'ideas');
+
+  let currentUser = null;
+  let unsubscribeLedger = null;
+  let ledgerCache = [];
+
   // ── PATENT SEARCH URLS ──
   const ENGINES = {
     google: q => `https://patents.google.com/?q=${encodeURIComponent(q)}`,
@@ -672,51 +713,124 @@
     document.getElementById('s-status').textContent = val;
   }
 
+  // ── AUTH ──
+  function handleSignIn() {
+    signInWithPopup(auth, googleProvider).catch(err => {
+      console.error(err);
+      showToast('⚠️ SIGN-IN FAILED — SEE CONSOLE');
+    });
+  }
+
+  function handleGuest() {
+    signInAnonymously(auth).catch(err => {
+      console.error(err);
+      showToast('⚠️ GUEST SIGN-IN FAILED — SEE CONSOLE');
+    });
+  }
+
+  function handleSignOut() {
+    signOut(auth);
+  }
+
+  function renderAuthArea() {
+    const area = document.getElementById('auth-area');
+    if (!currentUser) {
+      area.innerHTML = `
+        <button class="fs-btn" onclick="handleSignIn()">🔑 SIGN IN</button>
+        <button class="fs-btn" onclick="handleGuest()">👤 GUEST</button>`;
+      return;
+    }
+    const label = currentUser.isAnonymous
+      ? 'Guest'
+      : (currentUser.displayName || currentUser.email || 'Signed in');
+    area.innerHTML = `
+      <div class="user-badge">
+        <span class="name">${label}</span>
+        <button class="fs-btn" onclick="handleSignOut()">SIGN OUT</button>
+      </div>`;
+  }
+
+  onAuthStateChanged(auth, user => {
+    currentUser = user;
+    renderAuthArea();
+    subscribeLedger();
+  });
+
   // ── CAPTURE ──
-  function captureIdea() {
+  async function captureIdea() {
+    if (!currentUser) { showToast('⚠️ SIGN IN OR CONTINUE AS GUEST FIRST'); return; }
     const title = document.getElementById('idea-title').value.trim();
     const desc  = document.getElementById('idea-desc').value.trim();
     if (!title) { showToast('⚠️ NAME YOUR IDEA FIRST'); return; }
     if (!desc)  { showToast('⚠️ DESCRIBE IT — EVEN ONE LINE'); return; }
     const kw   = document.getElementById('idea-kw').value.trim();
     const cat  = document.getElementById('idea-cat').value;
-    const idea = {
-      id: Date.now(),
-      title, desc, kw, cat,
-      privacy: currentPrivacy,
-      created: new Date().toISOString(),
-      credit: 'You + Claude (Anthropic)'
-    };
-    const ideas = JSON.parse(localStorage.getItem('ip_ideas') || '[]');
-    ideas.unshift(idea);
-    localStorage.setItem('ip_ideas', JSON.stringify(ideas));
-    showToast('💡 IDEA CAPTURED & TIMESTAMPED');
-    document.getElementById('idea-title').value = '';
-    document.getElementById('idea-desc').value  = '';
-    document.getElementById('idea-kw').value    = '';
-    document.getElementById('patent-q').removeAttribute('data-manual');
-    updateStamp();
-    renderLedger();
+    const creditName = currentUser.isAnonymous
+      ? 'Guest'
+      : (currentUser.displayName || currentUser.email || 'You');
+
+    try {
+      await addDoc(ideasCol, {
+        title, desc, kw, cat,
+        privacy: currentPrivacy,
+        created: serverTimestamp(),
+        ownerUid: currentUser.uid,
+        credit: `${creditName} + Claude (Anthropic)`
+      });
+      showToast('💡 IDEA CAPTURED & TIMESTAMPED');
+      document.getElementById('idea-title').value = '';
+      document.getElementById('idea-desc').value  = '';
+      document.getElementById('idea-kw').value    = '';
+      document.getElementById('patent-q').removeAttribute('data-manual');
+      updateStamp();
+    } catch (err) {
+      console.error(err);
+      showToast('⚠️ COULD NOT SAVE — SEE CONSOLE');
+    }
   }
 
   // ── LEDGER ──
+  function subscribeLedger() {
+    if (unsubscribeLedger) { unsubscribeLedger(); unsubscribeLedger = null; }
+    ledgerCache = [];
+    if (!currentUser) { renderLedger(); return; }
+    const q = query(ideasCol, where('ownerUid', '==', currentUser.uid));
+    unsubscribeLedger = onSnapshot(q, snap => {
+      ledgerCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      ledgerCache.sort((a, b) => (b.created?.toMillis?.() || 0) - (a.created?.toMillis?.() || 0));
+      renderLedger();
+    }, err => {
+      console.error(err);
+      showToast('⚠️ LEDGER SYNC FAILED — SEE CONSOLE');
+    });
+  }
+
   function renderLedger() {
-    const ideas = JSON.parse(localStorage.getItem('ip_ideas') || '[]');
     const list  = document.getElementById('ledger-list');
     const empty = document.getElementById('ledger-empty');
-    if (!ideas.length) { empty && (empty.style.display = ''); return; }
-    empty && (empty.style.display = 'none');
-    list.innerHTML = ideas.map(i => `
-      <div class="ledger-item" onclick="loadIdea(${i.id})">
+    if (!currentUser) {
+      list.innerHTML = '';
+      empty.style.display = '';
+      empty.innerHTML = 'Sign in to see<br>your idea ledger.';
+      return;
+    }
+    if (!ledgerCache.length) {
+      list.innerHTML = '';
+      empty.style.display = '';
+      empty.innerHTML = 'No ideas yet.<br><br>Drop your first one →';
+      return;
+    }
+    empty.style.display = 'none';
+    list.innerHTML = ledgerCache.map(i => `
+      <div class="ledger-item" onclick="loadIdea('${i.id}')">
         <div class="ledger-item-title">${i.title}</div>
-        <div class="ledger-item-meta">${new Date(i.created).toLocaleDateString('en-GB')} · ${i.privacy}</div>
+        <div class="ledger-item-meta">${i.created?.toDate ? i.created.toDate().toLocaleDateString('en-GB') : '…'} · ${i.privacy}</div>
         ${i.kw ? `<div class="ledger-item-kw">${i.kw}</div>` : ''}
       </div>`).join('');
   }
 
   function loadIdea(id) {
-    const ideas = JSON.parse(localStorage.getItem('ip_ideas') || '[]');
-    const idea  = ideas.find(i => i.id === id);
+    const idea = ledgerCache.find(i => i.id === id);
     if (!idea) return;
     document.getElementById('idea-title').value = idea.title;
     document.getElementById('idea-desc').value  = idea.desc;
@@ -724,8 +838,6 @@
     updateStamp();
     showToast('📂 IDEA LOADED');
   }
-
-  renderLedger();
 
   // ── PANORAMIC FULLSCREEN ──
   function togglePanoramic() {
@@ -757,6 +869,14 @@
     t.classList.add('show');
     setTimeout(() => t.classList.remove('show'), 2800);
   }
+
+  // expose handlers referenced by inline onclick= attributes
+  // (a type="module" script's top-level scope is not global)
+  Object.assign(window, {
+    searchOne, searchAll, onTitleInput, onPatentInput, setPrivacy,
+    captureIdea, loadIdea, togglePanoramic,
+    handleSignIn, handleGuest, handleSignOut
+  });
 </script>
 </body>
 </html>
